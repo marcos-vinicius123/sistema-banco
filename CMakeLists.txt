@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(sistema_banco VERSION 0.1.0 LANGUAGES C CXX)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(MARIADB REQUIRED mariadb)
+
+include_directories(${MARIADB_INCLUDE_DIRS})
+link_directories(${MARIADB_LIBRARY_DIRS})
 
 file(GLOB all_SRCS
         "${PROJECT_SOURCE_DIR}/include/*.h"
@@ -13,3 +18,5 @@ include_directories(
 )
 
 add_executable(sistema_banco ${all_SRCS})
+
+target_link_libraries(sistema_banco ${MARIADB_LIBRARIES})
