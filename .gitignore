@@ -1,3 +1,4 @@
 /build
 /out
 /db-data
+CMakePresets.json
