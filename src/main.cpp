@@ -13,6 +13,7 @@ int main (int argc, char* argv[])
     MYSQL *conn;
     MYSQL_RES *res = new MYSQL_RES;
     MYSQL_ROW row;
+    int *num_fields;
     if (!(conn = mysql_init(0))) {
         std::cerr << "falha ao inicializar conexao\n";
         exit(1);
@@ -39,6 +40,8 @@ int main (int argc, char* argv[])
     int tela_atual = 0; //0=tela inicial
     bool rodando = true;
     int escolha;
+    int deposito;
+    std::string deposito_cpf;
     std::string query_str;
 
     while (rodando) {
@@ -52,9 +55,8 @@ int main (int argc, char* argv[])
                 printf("4) sair.\n");
 
                 std::cin >> escolha;
-                while (escolha<1 or escolha>4)  {
-                    
-                    
+                if (escolha<1 or escolha>4)  {
+                    break; 
                 }
 
                 switch (escolha) {
@@ -90,12 +92,13 @@ int main (int argc, char* argv[])
                 }
                 break;
             
-            case 1:
+            case 1:  //tela de registro
                 
                 system("clear");
                 std::cout << "--TELA DE REGISTRO--\n";
                 std::cout << "nome: ";
-                std::cin >> cliente.nome;
+
+                std::getline(std::cin >> std::ws, cliente.nome);
 
                 std::cout << "cpf: ";
                 std::cin >> cliente.cpf;
@@ -120,6 +123,66 @@ int main (int argc, char* argv[])
                     mysql_close(conn);
                     exit(1);
                 }
+                tela_atual = 0;
+                break;
+            
+            case 2: //tela de login
+                system("clear");
+                std::cout << "--TELA DE LOGIN--\n";
+                std::cout << "cpf: ";
+                std::cin >> cliente.cpf;
+                std::cout << "senha: ";
+                std::cin >> cliente.senha;
+
+                query_str = std::format(
+                    "SELECT * FROM Clientes WHERE cpf = '{}' AND senha = '{}'", cliente.cpf, cliente.senha);
+                if (mysql_real_query(conn, query_str.c_str(), query_str.length())) {
+                    std::cerr << "a query falhou: " << mysql_error(conn) << "\n";
+                    mysql_close(conn);
+                    exit(1);
+                }
+
+                res = mysql_store_result(conn);
+                row = mysql_fetch_row(res);
+                if (row==NULL) {
+                    std::cout << "senha ou cpf invalidos\n";
+                    std::cin >> std::ws;
+                } else {
+
+                    cliente.uuid = row[0];
+                    cliente.nome = row[1];
+                    cliente.email = row[2];
+                    cliente.senha = row[3];
+                    cliente.data_nascimento = row[4];
+                    cliente.saldo = std::stoi(row[5]);
+                    cliente.cpf = row[6];
+                    tela_atual = 4;
+                }
+                mysql_free_result(res);
+                break;
+            
+            case 3: //tela de deposito
+                std::cout << "--TELA DE DEPOSITO--\n";
+                std::cout << "valor em centavos\n";
+                std::cout << "cpf: ";
+                std::cin >> deposito_cpf;
+                std::cout << "deposito: ";
+                std::cin >> deposito;
+                query_str = std::format("UPDATE Clientes SET saldo = saldo+{} WHERE cpf='{}' ", deposito, deposito_cpf);
+                if (mysql_real_query(conn, query_str.c_str(), query_str.length())) {
+                    std::cerr << "a querry falhou: " << mysql_error(conn) << "\n";
+                    mysql_close(conn);
+                    exit(1);
+                }
+                tela_atual = 0; //tela inicial
+                break;
+            
+            case 4: //tela do cliente
+                std::cout << "--TELA DO CLIENTE--" << std::endl;
+                std::cout << "bem vindo " << cliente.nome << std::endl;
+                std::cout <<  std::format("saldo: ${},{}", cliente.saldo/100, cliente.saldo%100) << std::endl;
+
+                std::cin >> std::ws;
                 break;
             default:
                 std::cerr << "tela atual invalida: " << tela_atual << std::endl;
